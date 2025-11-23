@@ -21,8 +21,17 @@ function App() {
         // Settings & Theme
         const [settings, setSettings] = useState<UserSettings>(() => {
                 const saved = localStorage.getItem('trd_settings');
-                // Default to 'en' if not set, or 'zh' if you prefer
-                return saved ? JSON.parse(saved) : { apiKey: '', baseUrl: '', theme: 'dark', language: 'zh', model: 'gemini-2.0-flash-exp' };
+                const defaultSettings = { apiKey: '', baseUrl: '', theme: 'dark', language: 'zh', model: 'gemini-2.0-flash-exp' };
+                const parsedSettings = saved ? JSON.parse(saved) : defaultSettings;
+                // Apply theme immediately to avoid flash
+                if (parsedSettings.theme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                        document.body.classList.add('dark');
+                } else {
+                        document.documentElement.classList.remove('dark');
+                        document.body.classList.remove('dark');
+                }
+                return parsedSettings;
         });
         const [showSettings, setShowSettings] = useState(false);
 	const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -93,9 +102,14 @@ function App() {
         useEffect(() => {
                 if (settings.theme === 'dark') {
                         document.documentElement.classList.add('dark');
+                        document.body.classList.add('dark');
                 } else {
                         document.documentElement.classList.remove('dark');
+                        document.body.classList.remove('dark');
                 }
+        }, [settings.theme]);
+
+        useEffect(() => {
                 localStorage.setItem('trd_settings', JSON.stringify(settings));
         }, [settings]);
 
@@ -418,7 +432,7 @@ function App() {
                                                 <Layout className="text-text-primary" size={20} />
                                         </div>
                                         <h1 className="font-bold text-lg tracking-tight text-text-primary">
-                                                {t.title} <span className="text-xs font-mono font-normal opacity-50 ml-2">v1.0</span>
+                                                {t.title} <span className="text-xs font-mono font-normal opacity-50 ml-2">v{import.meta.env.VITE_APP_VERSION}</span>
                                         </h1>
                                 </div>
 
@@ -782,6 +796,12 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                         {language === 'zh' ? '更新日志 (Changelog)' : 'Changelog'}
                                                 </h2>
                                                 <div className="space-y-4">
+                                                        <div>
+                                                                <h3 className="text-lg font-semibold mb-2 text-text-primary">v1.1 - 2025/11/23</h3>
+                                                                <ul className="list-disc list-inside text-text-primary/80 space-y-1">
+                                                                        <li>{language === 'zh' ? '修复刷新页面时主题闪烁问题，现在直接应用保存的主题模式' : 'Fixed theme flickering on page refresh, now directly applies saved theme mode'}</li>
+                                                                </ul>
+                                                        </div>
                                                         <div>
                                                                 <h3 className="text-lg font-semibold mb-2 text-text-primary">v1.0</h3>
                                                                 <ul className="list-disc list-inside text-text-primary/80 space-y-1">
