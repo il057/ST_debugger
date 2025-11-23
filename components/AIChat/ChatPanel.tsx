@@ -12,10 +12,11 @@ interface ChatPanelProps {
         onClearMessages: () => void;
         isProcessing: boolean;
         language: 'zh' | 'en';
+        isMobile?: boolean;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
-        isOpen, onClose, messages, onSendMessage, onClearMessages, isProcessing, language
+        isOpen, onClose, messages, onSendMessage, onClearMessages, isProcessing, language, isMobile
 }) => {
         const [input, setInput] = useState('');
         const scrollRef = useRef<HTMLDivElement>(null);
@@ -110,17 +111,24 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         return (
                 <div
                         ref={panelRef}
-                        style={{
+                        style={isMobile ? {
+                                left: 0,
+                                top: '3.5rem',
+                                bottom: 'calc(3.5rem + env(safe-area-inset-bottom))',
+                                width: '100%',
+                                height: 'auto',
+                                zIndex: 40
+                        } : {
                                 left: position.x,
                                 top: position.y,
                                 zIndex: 100
                         }}
-                        className="fixed w-96 flex flex-col h-[600px] shadow-2xl rounded-xl overflow-hidden glass-panel border border-glass-border"
+                        className={`fixed flex flex-col shadow-2xl overflow-hidden glass-panel border border-glass-border ${isMobile ? 'rounded-none' : 'w-96 h-[600px] rounded-xl'}`}
                 >
                         {/* Header (Draggable) */}
                         <div
-                                className="p-3 border-b border-glass-border flex justify-between items-center bg-glass-highlight cursor-move select-none backdrop-blur-md"
-                                onMouseDown={handleMouseDown}
+                                className={`p-3 border-b border-glass-border flex justify-between items-center bg-glass-highlight select-none backdrop-blur-md ${!isMobile ? 'cursor-move' : ''}`}
+                                onMouseDown={!isMobile ? handleMouseDown : undefined}
                         >
                                 <div className="flex items-center space-x-2 text-text-primary">
                                         <Sparkles size={16} className="text-indigo-500" />
@@ -129,7 +137,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                 <div className="flex items-center space-x-2">
                                         <Move size={14} className="text-text-primary/40" />
                                         {messages.length > 0 && (
-                                                <button 
+                                                <button
                                                         onClick={(e) => { e.stopPropagation(); onClearMessages(); }}
                                                         className="text-text-primary/60 hover:text-red-500 transition-colors"
                                                         title={t.clearMessages}
@@ -156,8 +164,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                         <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                                 <div
                                                         className={`max-w-[90%] rounded-lg px-3 py-2 text-sm shadow-sm ${msg.role === 'user'
-                                                                        ? 'bg-neutral-800 text-white dark:bg-neutral-700'
-                                                                        : 'bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border border-glass-border'
+                                                                ? 'bg-neutral-800 text-white dark:bg-neutral-700'
+                                                                : 'bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border border-glass-border'
                                                                 } break-words whitespace-pre-wrap overflow-hidden`}
                                                 >
                                                         {msg.role === 'model' ? (

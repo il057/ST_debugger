@@ -1,2 +1,8 @@
 /* Placeholder index.css - put global CSS rules here if needed */
 body { margin: 0; }
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}

@@ -8,7 +8,7 @@ import { RegexRule, PipelineResult, STScriptImport, UserSettings } from './types
 import { DEFAULT_RULES, DEFAULT_TEXT } from './constants';
 import { runPipeline } from './utils/regexHelpers';
 import { sendMessageToAI, ChatMessage, fetchAvailableModels } from './services/aiApiService';
-import { Download, Upload, Sparkles, Layout, Trash2, Settings, Moon, Sun, RotateCcw, Globe, RefreshCw, Info } from 'lucide-react';
+import { Download, Upload, Sparkles, Layout, Trash2, Settings, Moon, Sun, RotateCcw, Globe, RefreshCw, Info, List, Edit3, Eye, Menu, X } from 'lucide-react';
 import { ConfirmationModal } from './components/UI/ConfirmationModal';
 
 function App() {
@@ -34,9 +34,9 @@ function App() {
                 return parsedSettings;
         });
         const [showSettings, setShowSettings] = useState(false);
-	const [availableModels, setAvailableModels] = useState<string[]>([]);
-	const [isFetchingModels, setIsFetchingModels] = useState(false);
-                const [showModelDropdown, setShowModelDropdown] = useState(false);
+        const [availableModels, setAvailableModels] = useState<string[]>([]);
+        const [isFetchingModels, setIsFetchingModels] = useState(false);
+        const [showModelDropdown, setShowModelDropdown] = useState(false);
         const [modelFilter, setModelFilter] = useState<string>('');
         const modelInputRef = useRef<HTMLInputElement>(null);        // Modal State
         const [modalConfig, setModalConfig] = useState<{
@@ -66,6 +66,23 @@ function App() {
         const [ruleListWidth, setRuleListWidth] = useState(256); // Rule list width in pixels
         const [isResizing, setIsResizing] = useState(false);
 
+        // Mobile State
+        const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+        const [mobileTab, setMobileTab] = useState<'rules' | 'source' | 'preview'>('rules');
+        const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+        useEffect(() => {
+                const handleResize = () => setIsMobile(window.innerWidth < 768);
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        useEffect(() => {
+                if (isMobile) {
+                        setRuleListCollapsed(true);
+                }
+        }, [isMobile]);
+
         // Dictionary for localization
         const t = {
                 title: settings.language === 'zh' ? '正则调试器' : 'Regex Debugger',
@@ -93,7 +110,11 @@ function App() {
                 modelPlaceholder: 'gemini-2.0-flash-exp',
                 fetchModels: settings.language === 'zh' ? '拉取模型' : 'Fetch Models',
                 fetching: settings.language === 'zh' ? '拉取中...' : 'Fetching...',
-                selectModel: settings.language === 'zh' ? '选择模型' : 'Select Model'
+                selectModel: settings.language === 'zh' ? '选择模型' : 'Select Model',
+                tabRules: settings.language === 'zh' ? '规则' : 'Rules',
+                tabSource: settings.language === 'zh' ? '源文本' : 'Source',
+                tabPreview: settings.language === 'zh' ? '预览' : 'Preview',
+                menu: settings.language === 'zh' ? '菜单' : 'Menu',
         };
 
         // --- Effects ---
@@ -303,17 +324,17 @@ function App() {
         };
 
         const handleFetchModels = async () => {
-		if (!settings.apiKey) {
-			setModalConfig({
-				isOpen: true,
-				title: settings.language === 'zh' ? '缺少 API Key' : 'Missing API Key',
-				message: settings.language === 'zh' ? '请先设置您的 API Key。' : 'Please set your API Key first.',
-				onConfirm: () => { },
-				isDangerous: false
-			});
-			return;
-		}
-		setIsFetchingModels(true);
+                if (!settings.apiKey) {
+                        setModalConfig({
+                                isOpen: true,
+                                title: settings.language === 'zh' ? '缺少 API Key' : 'Missing API Key',
+                                message: settings.language === 'zh' ? '请先设置您的 API Key。' : 'Please set your API Key first.',
+                                onConfirm: () => { },
+                                isDangerous: false
+                        });
+                        return;
+                }
+                setIsFetchingModels(true);
                 try {
                         const models = await fetchAvailableModels(settings);
                         console.log('handleFetchModels models:', models);
@@ -332,20 +353,20 @@ function App() {
                                 setShowModelDropdown(true);
                                 setTimeout(() => modelInputRef?.current?.focus(), 50);
                         }
-		} catch (error: any) {
-			setModalConfig({
-				isOpen: true,
-				title: settings.language === 'zh' ? '拉取模型失败' : 'Failed to Fetch Models',
-				message: settings.language === 'zh' 
-					? `拉取模型失败: ${error.message || '未知错误'}。请检查 API Key 和 Base URL。` 
-					: `Failed to fetch models: ${error.message || 'Unknown error'}. Check API Key and Base URL.`,
-				onConfirm: () => { },
-				isDangerous: false
-			});
-		} finally {
-			setIsFetchingModels(false);
-		}
-	};        // --- Resizing Logic ---
+                } catch (error: any) {
+                        setModalConfig({
+                                isOpen: true,
+                                title: settings.language === 'zh' ? '拉取模型失败' : 'Failed to Fetch Models',
+                                message: settings.language === 'zh'
+                                        ? `拉取模型失败: ${error.message || '未知错误'}。请检查 API Key 和 Base URL。`
+                                        : `Failed to fetch models: ${error.message || 'Unknown error'}. Check API Key and Base URL.`,
+                                onConfirm: () => { },
+                                isDangerous: false
+                        });
+                } finally {
+                        setIsFetchingModels(false);
+                }
+        };        // --- Resizing Logic ---
         const containerRef = useRef<HTMLDivElement>(null);
         const leftPaneRef = useRef<HTMLDivElement>(null);
         const topLeftRef = useRef<HTMLDivElement>(null);
@@ -427,89 +448,140 @@ function App() {
 
                         {/* Navbar */}
                         <header className="h-14 border-b border-glass-border bg-glass-panel backdrop-blur-md flex items-center justify-between px-4 shrink-0 z-20 shadow-sm transition-colors duration-300">
-                                <div className="flex items-center space-x-3">
-                                        <div className="p-1.5 bg-neutral-200 dark:bg-white/10 rounded-lg backdrop-blur-sm border border-glass-border">
+                                <div className="flex items-center space-x-3 min-w-0">
+                                        <div className="p-1.5 bg-neutral-200 dark:bg-white/10 rounded-lg backdrop-blur-sm border border-glass-border shrink-0">
                                                 <Layout className="text-text-primary" size={20} />
                                         </div>
-                                        <h1 className="font-bold text-lg tracking-tight text-text-primary">
-                                                {t.title} <span className="text-xs font-mono font-normal opacity-50 ml-2">v{import.meta.env.VITE_APP_VERSION}</span>
+                                        <h1 className="font-bold text-base sm:text-lg tracking-tight text-text-primary whitespace-nowrap flex items-center overflow-hidden">
+                                                <span className="truncate">{t.title}</span>
+                                                <span className="text-xs font-mono font-normal opacity-50 ml-2 hidden sm:inline">v{import.meta.env.VITE_APP_VERSION}</span>
                                         </h1>
                                 </div>
 
                                 <div className="flex items-center space-x-2">
-                                        <div className="flex items-center bg-glass-surface rounded-lg p-1 border border-glass-border mr-2 shadow-sm">
-                                                <button onClick={handleClearAll} className="p-2 hover:bg-red-500/10 text-text-primary hover:text-red-500 rounded transition-colors" title={t.clearAll}>
+                                        <div className="flex items-center bg-glass-surface rounded-lg p-1 border border-glass-border mr-2 shadow-sm h-9 box-border">
+                                                <button onClick={handleClearAll} className="h-full w-8 flex items-center justify-center hover:bg-red-500/10 text-text-primary hover:text-red-500 rounded transition-colors" title={t.clearAll}>
                                                         <Trash2 size={16} />
                                                 </button>
-                                                <button onClick={handleResetDefault} className="p-2 hover:bg-glass-highlight text-text-primary rounded transition-colors" title={t.restoreDefault}>
+                                                <button onClick={handleResetDefault} className="h-full w-8 flex items-center justify-center hover:bg-glass-highlight text-text-primary rounded transition-colors" title={t.restoreDefault}>
                                                         <RotateCcw size={16} />
                                                 </button>
                                         </div>
 
                                         <div className="flex space-x-2 mr-4">
                                                 {/* Icons Swapped: Import uses Download icon (Into App), Export uses Upload icon (Out of App) to match user request */}
-                                                <label className="cursor-pointer glass-button hover:bg-glass-highlight text-text-primary px-3 py-1.5 rounded-md text-sm flex items-center transition-colors shadow-sm">
-                                                        <Download size={14} className="mr-2" /> {t.import}
+                                                <label className={`cursor-pointer glass-button hover:bg-glass-highlight text-text-primary h-9 rounded-md text-sm flex items-center justify-center transition-colors shadow-sm ${isMobile ? 'w-9 px-0' : 'px-3'}`}>
+                                                        <Download size={14} className={isMobile ? "" : "mr-2"} /> {!isMobile && t.import}
                                                         <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                                                 </label>
-                                                <Button variant="secondary" size="sm" onClick={handleExport} icon={<Upload size={14} />} className="glass-button bg-glass-surface border-glass-border text-text-primary hover:text-text-primary hover:bg-glass-highlight shadow-sm">
-                                                        {t.export}
+                                                <Button variant="secondary" size="sm" onClick={handleExport} icon={!isMobile ? <Upload size={14} /> : undefined} className={`glass-button bg-glass-surface border-glass-border text-text-primary hover:text-text-primary hover:bg-glass-highlight shadow-sm h-9 ${isMobile ? 'w-9 px-0 flex items-center justify-center' : ''}`}>
+                                                        {isMobile ? <Upload size={14} /> : t.export}
                                                 </Button>
                                         </div>
 
                                         <button
-                                                className={`p-2 rounded-lg transition-colors ${isChatOpen ? 'bg-black/5 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-glass-border shadow-inner' : 'text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight'}`}
+                                                className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${isChatOpen ? 'bg-black/5 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-glass-border shadow-inner' : 'text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight'}`}
                                                 onClick={() => setIsChatOpen(!isChatOpen)}
                                                 title={t.aiAssistant}
                                         >
                                                 <Sparkles size={18} />
                                         </button>
 
-                                        <button
-                                                className="p-2 text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
-                                                onClick={() => setShowSettings(true)}
-                                                title={t.settings}
-                                        >
-                                                <Settings size={18} />
-                                        </button>
+                                        {!isMobile ? (
+                                                <>
+                                                        <button
+                                                                className="h-9 w-9 flex items-center justify-center text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
+                                                                onClick={() => setShowSettings(true)}
+                                                                title={t.settings}
+                                                        >
+                                                                <Settings size={18} />
+                                                        </button>
 
-                                        <button
-                                                className="p-2 text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
-                                                onClick={() => setShowAboutPage(true)}
-                                                title={settings.language === 'zh' ? '关于' : 'About'}
-                                        >
-                                                <Info size={18} />
-                                        </button>
+                                                        <button
+                                                                className="h-9 w-9 flex items-center justify-center text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
+                                                                onClick={() => setShowAboutPage(true)}
+                                                                title={settings.language === 'zh' ? '关于' : 'About'}
+                                                        >
+                                                                <Info size={18} />
+                                                        </button>
 
-                                        <button
-                                                className="p-2 text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
-                                                onClick={() => handleUpdateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}
-                                                title={t.theme}
-                                        >
-                                                {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                                        </button>
+                                                        <button
+                                                                className="h-9 w-9 flex items-center justify-center text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
+                                                                onClick={() => handleUpdateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' })}
+                                                                title={t.theme}
+                                                        >
+                                                                {settings.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                                                        </button>
 
-                                        <button
-                                                className="px-2 py-1 text-xs font-bold text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded border border-transparent hover:border-glass-border transition-all"
-                                                onClick={() => handleUpdateSettings({ language: settings.language === 'zh' ? 'en' : 'zh' })}
-                                                title={t.lang}
-                                        >
-                                                {t.toggleLang}
-                                        </button>
+                                                        <button
+                                                                className="h-9 px-3 flex items-center justify-center text-xs font-bold text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded border border-transparent hover:border-glass-border transition-all"
+                                                                onClick={() => handleUpdateSettings({ language: settings.language === 'zh' ? 'en' : 'zh' })}
+                                                                title={t.lang}
+                                                        >
+                                                                {t.toggleLang}
+                                                        </button>
+                                                </>
+                                        ) : (
+                                                <div className="relative">
+                                                        <button
+                                                                className="h-9 w-9 flex items-center justify-center text-text-primary/60 hover:text-text-primary hover:bg-glass-highlight rounded-lg transition-colors"
+                                                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                                                title={t.menu}
+                                                        >
+                                                                {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+                                                        </button>
+                                                        {isMobileMenuOpen && (
+                                                                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 border border-glass-border rounded-xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                                                        <button
+                                                                                className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-glass-highlight flex items-center"
+                                                                                onClick={() => { setShowSettings(true); setIsMobileMenuOpen(false); }}
+                                                                        >
+                                                                                <Settings size={16} className="mr-2" /> {t.settings}
+                                                                        </button>
+                                                                        <button
+                                                                                className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-glass-highlight flex items-center"
+                                                                                onClick={() => { setShowAboutPage(true); setIsMobileMenuOpen(false); }}
+                                                                        >
+                                                                                <Info size={16} className="mr-2" /> {settings.language === 'zh' ? '关于' : 'About'}
+                                                                        </button>
+                                                                        <button
+                                                                                className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-glass-highlight flex items-center"
+                                                                                onClick={() => { handleUpdateSettings({ theme: settings.theme === 'dark' ? 'light' : 'dark' }); setIsMobileMenuOpen(false); }}
+                                                                        >
+                                                                                {settings.theme === 'dark' ? <Sun size={16} className="mr-2" /> : <Moon size={16} className="mr-2" />} {t.theme}
+                                                                        </button>
+                                                                        <button
+                                                                                className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-glass-highlight flex items-center"
+                                                                                onClick={() => { handleUpdateSettings({ language: settings.language === 'zh' ? 'en' : 'zh' }); setIsMobileMenuOpen(false); }}
+                                                                        >
+                                                                                <Globe size={16} className="mr-2" /> {t.lang}
+                                                                        </button>
+                                                                </div>
+                                                        )}
+                                                </div>
+                                        )}
                                 </div>
                         </header>
 
                         {/* Main Content */}
-                        <div className="flex-1 flex overflow-hidden relative" ref={containerRef}>
+                        <div className={`flex-1 flex overflow-hidden relative ${isMobile ? 'flex-col' : ''}`} ref={containerRef}>
 
                                 {/* LEFT PANE */}
-                                <div style={{ width: `${splitPosV}%` }} className="flex flex-col relative min-w-0" ref={leftPaneRef}>
+                                <div
+                                        style={!isMobile ? { width: `${splitPosV}%` } : { width: '100%', display: mobileTab === 'preview' ? 'none' : 'flex', flex: 1 }}
+                                        className={`flex ${isMobile && mobileTab === 'rules' ? 'flex-row' : 'flex-col'} relative min-w-0`}
+                                        ref={leftPaneRef}
+                                >
 
                                         {/* TOP LEFT (List + Source) */}
-                                        <div style={{ height: `${splitPosH}%` }} className="flex relative min-h-0 overflow-hidden" ref={topLeftRef}>
+                                        <div
+                                                style={!isMobile ? { height: `${splitPosH}%` } : { flex: mobileTab === 'rules' ? 'none' : 1, width: mobileTab === 'rules' ? 'auto' : '100%', display: mobileTab === 'rules' || mobileTab === 'source' ? 'flex' : 'none' }}
+                                                className="flex relative min-h-0 overflow-hidden"
+                                                ref={topLeftRef}
+                                        >
                                                 {/* Rule List */}
                                                 <div
-                                                        style={{ width: isRuleListCollapsed ? '48px' : `${ruleListWidth}px` }}
+                                                        style={{ width: isRuleListCollapsed ? '48px' : `${ruleListWidth}px`, display: isMobile && mobileTab === 'source' ? 'none' : 'block' }}
                                                         className="shrink-0 h-full transition-all duration-300 ease-in-out border-r border-glass-border"
                                                 >
                                                         <RuleList
@@ -526,15 +598,18 @@ function App() {
                                                 </div>
 
                                                 {/* Rule List Resizer - 规则列表和源文本之间的分隔符 */}
-                                                {!isRuleListCollapsed && (
-                                                        <div 
+                                                {!isRuleListCollapsed && !isMobile && (
+                                                        <div
                                                                 className="w-1 bg-transparent hover:bg-indigo-500/50 cursor-col-resize z-10 shrink-0"
                                                                 onMouseDown={handleMouseDownRuleList}
                                                         />
                                                 )}
 
                                                 {/* Source Text */}
-                                                <div className="flex-1 flex flex-col bg-transparent glass-panel rounded-none border-t-0 border-b-0 border-l-0 min-w-0">
+                                                <div
+                                                        style={{ display: isMobile && mobileTab === 'rules' ? 'none' : 'flex' }}
+                                                        className="flex-1 flex flex-col bg-transparent glass-panel rounded-none border-t-0 border-b-0 border-l-0 min-w-0"
+                                                >
                                                         <div className="bg-glass-surface px-3 py-1.5 text-xs text-text-primary/60 font-mono border-b border-glass-border font-bold flex justify-between items-center">
                                                                 <span>{t.sourceText}</span>
                                                                 <span className="text-[10px] opacity-50">RAW INPUT</span>
@@ -549,11 +624,14 @@ function App() {
                                                 </div>
 
                                                 {/* Resizer Handle Horizontal (Inside Left Pane) */}
-                                                <div className="absolute bottom-0 left-0 right-0 h-1 z-10 cursor-row-resize hover:bg-indigo-500/50" onMouseDown={handleMouseDownH} />
+                                                {!isMobile && <div className="absolute bottom-0 left-0 right-0 h-1 z-10 cursor-row-resize hover:bg-indigo-500/50" onMouseDown={handleMouseDownH} />}
                                         </div>
 
                                         {/* BOTTOM LEFT (Editor) */}
-                                        <div style={{ height: `${100 - splitPosH}%` }} className="flex flex-col border-t border-glass-border dark:bg-glass-surface/30 relative">
+                                        <div
+                                                style={!isMobile ? { height: `${100 - splitPosH}%` } : { flex: 1, display: mobileTab === 'rules' ? 'flex' : 'none' }}
+                                                className="flex flex-col border-t border-glass-border dark:bg-glass-surface/30 relative"
+                                        >
                                                 {activeRule ? (
                                                         <div className="flex flex-col h-full p-3 space-y-3 overflow-y-auto">
                                                                 <div className="flex space-x-3 items-end">
@@ -597,13 +675,18 @@ function App() {
                                 </div>
 
                                 {/* Resizer Handle Vertical (Main Split) */}
-                                <div className="w-1 bg-transparent hover:bg-indigo-500/50 cursor-col-resize z-20 absolute top-0 bottom-0"
-                                        style={{ left: `${splitPosV}%` }}
-                                        onMouseDown={handleMouseDownV}
-                                />
+                                {!isMobile && (
+                                        <div className="w-1 bg-transparent hover:bg-indigo-500/50 cursor-col-resize z-20 absolute top-0 bottom-0"
+                                                style={{ left: `${splitPosV}%` }}
+                                                onMouseDown={handleMouseDownV}
+                                        />
+                                )}
 
                                 {/* RIGHT PANE */}
-                                <div style={{ width: `${100 - splitPosV}%` }} className="flex flex-col relative min-w-0 border-l border-glass-border">
+                                <div
+                                        style={!isMobile ? { width: `${100 - splitPosV}%` } : { width: '100%', display: mobileTab === 'preview' ? 'flex' : 'none', flex: 1 }}
+                                        className="flex flex-col relative min-w-0 border-l border-glass-border"
+                                >
                                         <div className="relative flex-1 flex flex-col overflow-hidden">
                                                 <PreviewPane
                                                         htmlContent={pipelineResult.finalHtml}
@@ -614,25 +697,53 @@ function App() {
                                                 />
                                                 {isResizing && <div className="absolute inset-0 z-50 bg-transparent" />}
                                         </div>
-
-                                        {/* Chat Panel - Floating */}
-                                        <ChatPanel
-                                                isOpen={isChatOpen}
-                                                onClose={() => setIsChatOpen(false)}
-                                                messages={chatMessages}
-                                                onSendMessage={handleAiMessage}
-                                                onClearMessages={() => setChatMessages([])}
-                                                isProcessing={isAiProcessing}
-                                                language={settings.language}
-                                        />
                                 </div>
+
+                                {/* Mobile Tab Bar */}
+                                {isMobile && (
+                                        <div className="min-h-[3.5rem] h-auto bg-white dark:bg-neutral-900 border-t border-glass-border flex shrink-0 z-50 justify-around items-center pb-[env(safe-area-inset-bottom)]">
+                                                <button
+                                                        onClick={() => setMobileTab('rules')}
+                                                        className={`flex flex-col items-center justify-center w-full py-2 ${mobileTab === 'rules' ? 'text-indigo-500' : 'text-text-primary/50'}`}
+                                                >
+                                                        <List size={20} />
+                                                        <span className="text-[10px] mt-1">{t.tabRules}</span>
+                                                </button>
+                                                <button
+                                                        onClick={() => setMobileTab('source')}
+                                                        className={`flex flex-col items-center justify-center w-full py-2 ${mobileTab === 'source' ? 'text-indigo-500' : 'text-text-primary/50'}`}
+                                                >
+                                                        <Edit3 size={20} />
+                                                        <span className="text-[10px] mt-1">{t.tabSource}</span>
+                                                </button>
+                                                <button
+                                                        onClick={() => setMobileTab('preview')}
+                                                        className={`flex flex-col items-center justify-center w-full py-2 ${mobileTab === 'preview' ? 'text-indigo-500' : 'text-text-primary/50'}`}
+                                                >
+                                                        <Eye size={20} />
+                                                        <span className="text-[10px] mt-1">{t.tabPreview}</span>
+                                                </button>
+                                        </div>
+                                )}
+
+                                {/* Chat Panel - Global Overlay */}
+                                <ChatPanel
+                                        isOpen={isChatOpen}
+                                        onClose={() => setIsChatOpen(false)}
+                                        messages={chatMessages}
+                                        onSendMessage={handleAiMessage}
+                                        onClearMessages={() => setChatMessages([])}
+                                        isProcessing={isAiProcessing}
+                                        language={settings.language}
+                                        isMobile={isMobile}
+                                />
 
                         </div>
 
                         {/* Settings Modal */}
                         {showSettings && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                                        <div className="glass-panel bg-white dark:bg-neutral-900 w-96 p-6 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200 border border-glass-border">
+                                        <div className="glass-panel bg-white dark:bg-neutral-900 w-[90%] max-w-md p-6 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200 border border-glass-border">
                                                 <h2 className="text-lg font-bold mb-4 flex items-center text-text-primary"><Settings className="mr-2" size={20} />{t.settings}</h2>
 
                                                 <div className="space-y-4">
@@ -764,8 +875,8 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                                         {language === 'zh' ? '什么是正则调试器？' : 'What is Regex Debugger?'}
                                                                 </h3>
                                                                 <p className="text-text-primary/80">
-                                                                        {language === 'zh' 
-                                                                                ? '正则调试器是一个用于测试和调试正则表达式的工具，帮助开发者快速验证和优化正则表达式。' 
+                                                                        {language === 'zh'
+                                                                                ? '正则调试器是一个用于测试和调试正则表达式的工具，帮助开发者快速验证和优化正则表达式。'
                                                                                 : 'Regex Debugger is a tool for testing and debugging regular expressions, helping developers quickly validate and optimize regex patterns.'}
                                                                 </p>
                                                         </div>
@@ -774,8 +885,8 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                                         {language === 'zh' ? '如何使用？' : 'How to use it?'}
                                                                 </h3>
                                                                 <p className="text-text-primary/80">
-                                                                        {language === 'zh' 
-                                                                                ? '在左侧添加规则，输入正则表达式和替换模板，然后在源文本中输入测试内容，右侧会实时显示处理结果。' 
+                                                                        {language === 'zh'
+                                                                                ? '在左侧添加规则，输入正则表达式和替换模板，然后在源文本中输入测试内容，右侧会实时显示处理结果。'
                                                                                 : 'Add rules on the left, enter regex and replacement template, then input test content in source text, and the processed result will be displayed in real-time on the right.'}
                                                                 </p>
                                                         </div>
@@ -784,8 +895,8 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                                         {language === 'zh' ? 'AI 助手有什么用？' : 'What is the AI Assistant for?'}
                                                                 </h3>
                                                                 <p className="text-text-primary/80">
-                                                                        {language === 'zh' 
-                                                                                ? 'AI 助手可以提供正则表达式的解释、优化建议和调试帮助。' 
+                                                                        {language === 'zh'
+                                                                                ? 'AI 助手可以提供正则表达式的解释、优化建议和调试帮助。'
                                                                                 : 'The AI Assistant can provide explanations, optimization suggestions, and debugging help for regular expressions.'}
                                                                 </p>
                                                         </div>
@@ -800,6 +911,9 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                                 <h3 className="text-lg font-semibold mb-2 text-text-primary">v1.1 - 2025/11/23</h3>
                                                                 <ul className="list-disc list-inside text-text-primary/80 space-y-1">
                                                                         <li>{language === 'zh' ? '修复刷新页面时主题闪烁问题，现在直接应用保存的主题模式' : 'Fixed theme flickering on page refresh, now directly applies saved theme mode'}</li>
+                                                                        <li>{language === 'zh' ? '改进移动设备上的布局和交互体验' : 'Improved layout and interaction experience on mobile devices'}</li>
+                                                                        <li>{language === 'zh' ? '优化代码编辑器的字体大小和行间距' : 'Optimized font size and line spacing in the code editor'}</li>
+                                                                        <li>{language === 'zh' ? '更新依赖包以提升性能和安全性' : 'Updated dependencies for better performance and security'}</li>
                                                                 </ul>
                                                         </div>
                                                         <div>
@@ -820,10 +934,10 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                         <footer className="p-4 border-t border-glass-border bg-glass-panel backdrop-blur-md">
                                 <div className="text-center text-text-primary/60">
                                         <p className="mb-2">
-                                                {language === 'zh' ? '开发者 / Developer' : 'Developer'}: 
-                                                <a 
-                                                        href="https://github.com/il057" 
-                                                        target="_blank" 
+                                                {language === 'zh' ? '开发者 / Developer' : 'Developer'}:
+                                                <a
+                                                        href="https://github.com/il057"
+                                                        target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-indigo-600 dark:text-indigo-400 hover:underline ml-1"
                                                 >
@@ -831,10 +945,10 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                 </a>
                                         </p>
                                         <p className="text-sm">
-                                                {language === 'zh' ? '项目仓库' : 'Project Repository'}: 
-                                                <a 
-                                                        href="https://github.com/il057/ST_debugger" 
-                                                        target="_blank" 
+                                                {language === 'zh' ? '项目仓库' : 'Project Repository'}:
+                                                <a
+                                                        href="https://github.com/il057/ST_debugger"
+                                                        target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-indigo-600 dark:text-indigo-400 hover:underline ml-1"
                                                 >

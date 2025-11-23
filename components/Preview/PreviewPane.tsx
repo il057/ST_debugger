@@ -14,7 +14,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({ htmlContent, logs, isC
         return (
                 <div className="flex flex-col h-full bg-transparent overflow-hidden">
                         {/* Visual Preview - Solid Colors now */}
-                        <div className="flex-1 relative bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300">
+                        <div className="flex-1 relative bg-neutral-100 dark:bg-neutral-900 transition-colors duration-300 overflow-hidden">
                                 <div className="absolute top-2 left-2 pointer-events-none z-10">
                                         <span className="bg-black/90 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm border border-white/10 font-mono shadow-sm">
                                                 PREVIEW :: RENDER

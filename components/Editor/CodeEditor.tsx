@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Editor, { Loader } from '@monaco-editor/react';
+import Editor, { loader } from '@monaco-editor/react';
 
 interface CodeEditorProps {
   value: string;
@@ -38,7 +38,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, languag
         onChange={(val) => onChange(val || '')}
         options={{
           minimap: { enabled: false },
-          fontSize: 12,
+          fontSize: 14,
           wordWrap: 'on',
           scrollBeyondLastLine: false,
           padding: { top: 12, bottom: 12 },

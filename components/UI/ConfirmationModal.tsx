@@ -27,7 +27,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
         return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="glass-panel bg-white dark:bg-neutral-900 w-96 p-6 rounded-xl shadow-2xl border border-glass-border transform transition-all scale-100">
+                        <div className="glass-panel bg-white dark:bg-neutral-900 w-[90%] max-w-md p-6 rounded-xl shadow-2xl border border-glass-border transform transition-all scale-100">
                                 <div className="flex items-center mb-4 text-text-primary">
                                         {isDangerous && <AlertTriangle className="text-red-500 mr-3" size={24} />}
                                         <h3 className="text-lg font-bold">{title}</h3>
