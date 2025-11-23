@@ -77,7 +77,7 @@ ${currentRules.map((r, i) => `[${i + 1}] ID: ${r.id}
     Name: ${r.name}
     Active: ${r.active}
     Regex: ${r.regex}
-    Replace: ${r.replace.substring(0, 100)}${r.replace.length > 100 ? '...' : ''}`).join('\n\n')}
+    Replace: ${r.replace}`).join('\n\n')}
 
 Your goal is to help the user write correct regex, fix HTML structure, and debug pipeline issues.
 
@@ -162,22 +162,49 @@ CRITICAL INSTRUCTIONS:
         let currentMessages = [...messages];
         const maxTurns = 5;
         let turns = 0;
+        let useTools = true;
 
         let lastAssistantContent: string | null = null;
         while (turns < maxTurns) {
-                console.log('[sendMessageViaProxy] turn', turns, 'currentMessages length', currentMessages.length);
-                const response = await fetch(`${baseUrl}/v1/chat/completions`, {
-                        method: 'POST',
-                        headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({ ...requestBody, messages: currentMessages })
-                });
+                console.log('[sendMessageViaProxy] turn', turns, 'currentMessages length', currentMessages.length, 'useTools', useTools);
+
+                const bodyToSend = { ...requestBody, messages: currentMessages };
+                if (!useTools) {
+                        delete bodyToSend.tools;
+                        delete bodyToSend.tool_choice;
+                }
+
+                let response;
+                try {
+                        response = await fetch(`${baseUrl}/v1/chat/completions`, {
+                                method: 'POST',
+                                headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${apiKey}`
+                                },
+                                body: JSON.stringify(bodyToSend)
+                        });
+                } catch (error) {
+                        console.warn(`[sendMessageViaProxy] Fetch failed (turn ${turns}, useTools ${useTools})`, error);
+                        if (useTools) {
+                                // Don't retry on 429
+                                if (error.message && error.message.includes('429')) {
+                                        throw error;
+                                }
+                                console.warn('[sendMessageViaProxy] Retrying without tools...');
+                                useTools = false;
+                                continue;
+                        }
+                        throw error;
+                }
 
                 if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+                        const status = response.status;
+                        if (status === 429) {
+                                throw new Error(settings.language === 'zh' ? '请求过多 (429)，请稍后重试。' : 'Too many requests (429), please try again later.');
+                        }
+                        throw new Error(errorData.error?.message || `HTTP ${status}`);
                 }
 
                 const data = await response.json();
@@ -193,7 +220,13 @@ CRITICAL INSTRUCTIONS:
                 // 如果有工具调用
                 if (message.tool_calls && message.tool_calls.length > 0) {
                         turns++;
-                        currentMessages.push(message);
+                        // Sanitize assistant message to ensure only necessary fields are sent back
+                        const assistantMsg = {
+                                role: 'assistant',
+                                content: message.content || null,
+                                tool_calls: message.tool_calls
+                        };
+                        currentMessages.push(assistantMsg as any);
 
                         for (const toolCall of message.tool_calls) {
                                 const functionName = toolCall.function.name;
@@ -277,7 +310,7 @@ ${currentRules.map((r, i) => `[${i + 1}] ID: ${r.id}
     Name: ${r.name}
     Active: ${r.active}
     Regex: ${r.regex}
-    Replace: ${r.replace.substring(0, 100)}${r.replace.length > 100 ? '...' : ''}`).join('\n\n')}
+    Replace: ${r.replace}`).join('\n\n')}
 
 Your goal is to help the user write correct regex, fix HTML structure, and debug pipeline issues.
 
@@ -307,7 +340,7 @@ CRITICAL INSTRUCTIONS:
         try {
                 // 判断是否使用反代
                 const isDirect = !settings.baseUrl || settings.baseUrl.includes('googleapis.com');
-                
+
                 if (!isDirect) {
                         // 使用反代时，通过fetch直接调用OpenAI兼容API
                         console.log('[sendMessageToAI] using proxy via sendMessageViaProxy.');
@@ -403,12 +436,17 @@ CRITICAL INSTRUCTIONS:
 
                 return finalResponseText;
 
-	} catch (error: any) {
-		const errorMsg = settings.language === 'zh'
-			? `通信错误: ${error.message || "未知错误"}。请检查 API Key 和 Base URL 设置。`
-			: `Communication Error: ${error.message || "Unknown error"}. Check API Key and Base URL settings.`;
-		return errorMsg;
-	}
+        } catch (error: any) {
+                if (error.message && error.message.includes('429')) {
+                        return settings.language === 'zh'
+                                ? "请求过多 (429)，请稍后手动重试。"
+                                : "Too many requests (429). Please retry manually later.";
+                }
+                const errorMsg = settings.language === 'zh'
+                        ? `通信错误: ${error.message || "未知错误"}。请检查 API Key 和 Base URL 设置。`
+                        : `Communication Error: ${error.message || "Unknown error"}. Check API Key and Base URL settings.`;
+                return errorMsg;
+        }
 };
 
 export const fetchAvailableModels = async (settings: UserSettings): Promise<string[]> => {
@@ -423,69 +461,69 @@ export const fetchAvailableModels = async (settings: UserSettings): Promise<stri
                 },
         };
 
-	const isDirect = !settings.baseUrl || settings.baseUrl.includes('googleapis.com');
+        const isDirect = !settings.baseUrl || settings.baseUrl.includes('googleapis.com');
 
-	if (isDirect) {
-		// Gemini Direct
-		fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-	} else {
-		// Proxy (OpenAI Compatible)
-		if (!settings.baseUrl || !settings.baseUrl.trim()) {
-			throw new Error('反向代理地址不能为空。');
-		}
-		// 清理URL，确保末尾没有多余的斜杠
-		const cleanBaseUrl = settings.baseUrl.trim().endsWith('/')
-			? settings.baseUrl.trim().slice(0, -1)
-			: settings.baseUrl.trim();
+        if (isDirect) {
+                // Gemini Direct
+                fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        } else {
+                // Proxy (OpenAI Compatible)
+                if (!settings.baseUrl || !settings.baseUrl.trim()) {
+                        throw new Error('反向代理地址不能为空。');
+                }
+                // 清理URL，确保末尾没有多余的斜杠
+                const cleanBaseUrl = settings.baseUrl.trim().endsWith('/')
+                        ? settings.baseUrl.trim().slice(0, -1)
+                        : settings.baseUrl.trim();
 
-		fetchUrl = `${cleanBaseUrl}/v1/models`;
-		fetchOptions.headers['Authorization'] = `Bearer ${apiKey}`;
-	}
+                fetchUrl = `${cleanBaseUrl}/v1/models`;
+                fetchOptions.headers['Authorization'] = `Bearer ${apiKey}`;
+        }
 
-	try {
-		const response = await fetch(fetchUrl, fetchOptions);
+        try {
+                const response = await fetch(fetchUrl, fetchOptions);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			const errorMessage = errorData.error?.message || `HTTP 错误, 状态码: ${response.status}`;
-			throw new Error(errorMessage);
-		}
+                if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        const errorMessage = errorData.error?.message || `HTTP 错误, 状态码: ${response.status}`;
+                        throw new Error(errorMessage);
+                }
 
-		const data = await response.json();
-		console.log('API返回数据:', data); // 调试日志
+                const data = await response.json();
+                console.log('API返回数据:', data); // 调试日志
 
-		// 根据连接方式，解析不同结构的返回数据
-		let models: string[] = [];
-		if (isDirect) {
-			// 解析 Gemini 的 `data.models` 数组
-			if (data.models && Array.isArray(data.models)) {
-				models = data.models
-					.filter((model: any) => model.supportedGenerationMethods && model.supportedGenerationMethods.includes('generateContent'))
-					.map((model: any) => model.name.replace('models/', ''));
-			}
-		} else {
-			// 解析兼容OpenAI的返回数据，支持多种格式
-			if (data.data && Array.isArray(data.data)) {
-				// 格式1: { data: [{ id: "model-name" }] }
-				models = data.data.map((model: any) => model.id || model.name || String(model));
-			} else if (Array.isArray(data)) {
-				// 格式2: 直接返回数组 [{ id: "model-name" }] 或 ["model-name"]
-				models = data.map((model: any) => model.id || model.name || String(model));
-			} else if (data.models && Array.isArray(data.models)) {
-				// 格式3: { models: [...] }
-				models = data.models.map((model: any) => model.id || model.name || String(model));
-			}
-		}
+                // 根据连接方式，解析不同结构的返回数据
+                let models: string[] = [];
+                if (isDirect) {
+                        // 解析 Gemini 的 `data.models` 数组
+                        if (data.models && Array.isArray(data.models)) {
+                                models = data.models
+                                        .filter((model: any) => model.supportedGenerationMethods && model.supportedGenerationMethods.includes('generateContent'))
+                                        .map((model: any) => model.name.replace('models/', ''));
+                        }
+                } else {
+                        // 解析兼容OpenAI的返回数据，支持多种格式
+                        if (data.data && Array.isArray(data.data)) {
+                                // 格式1: { data: [{ id: "model-name" }] }
+                                models = data.data.map((model: any) => model.id || model.name || String(model));
+                        } else if (Array.isArray(data)) {
+                                // 格式2: 直接返回数组 [{ id: "model-name" }] 或 ["model-name"]
+                                models = data.map((model: any) => model.id || model.name || String(model));
+                        } else if (data.models && Array.isArray(data.models)) {
+                                // 格式3: { models: [...] }
+                                models = data.models.map((model: any) => model.id || model.name || String(model));
+                        }
+                }
 
-		console.log('解析后的模型列表:', models); // 调试日志
+                console.log('解析后的模型列表:', models); // 调试日志
 
-		if (models.length === 0) {
-			throw new Error('未能从API响应中解析出任何模型。请检查API返回格式。');
-		}
+                if (models.length === 0) {
+                        throw new Error('未能从API响应中解析出任何模型。请检查API返回格式。');
+                }
 
-		return models.sort();
+                return models.sort();
 
-	} catch (error: any) {
-		throw error;
-	}
+        } catch (error: any) {
+                throw error;
+        }
 };
