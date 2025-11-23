@@ -914,6 +914,7 @@ const AboutPage = ({ onBack, language }: { onBack: () => void; language: string 
                                                                         <li>{language === 'zh' ? '改进移动设备上的布局和交互体验' : 'Improved layout and interaction experience on mobile devices'}</li>
                                                                         <li>{language === 'zh' ? '优化代码编辑器的字体大小和行间距' : 'Optimized font size and line spacing in the code editor'}</li>
                                                                         <li>{language === 'zh' ? '更新依赖包以提升性能和安全性' : 'Updated dependencies for better performance and security'}</li>
+                                                                        <li>{language === 'zh' ? '改进空源处理' : ' Improved empty source handling'}</li>
                                                                 </ul>
                                                         </div>
                                                         <div>

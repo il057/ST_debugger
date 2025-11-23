@@ -21,11 +21,44 @@ export const stringToRegex = (str: string): RegExp => {
  * Runs the chain of regex replacements.
  */
 export const runPipeline = (sourceText: string, rules: RegexRule[]): PipelineResult => {
-        let currentText = sourceText;
-        const logs: ProcessingLog[] = [];
-
         // Sort by order
         const sortedRules = [...rules].sort((a, b) => a.order - b.order);
+
+        // Inject Scrollbar Styles
+        const scrollbarStyles = `
+    <style>
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.3); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.5); }
+    </style>
+  `;
+
+        // If source text is empty, display the replace string of all active rules (template preview)
+        if (!sourceText) {
+                const logs: ProcessingLog[] = [];
+                let accumulatedHtml = '';
+
+                for (const rule of sortedRules) {
+                        if (!rule.active) continue;
+                        accumulatedHtml += rule.replace;
+                        logs.push({
+                                ruleId: rule.id,
+                                ruleName: rule.name,
+                                matched: false,
+                                matchCount: 0,
+                                executionTimeMs: 0
+                        });
+                }
+
+                return {
+                        finalHtml: scrollbarStyles + accumulatedHtml,
+                        logs
+                };
+        }
+
+        let currentText = sourceText;
+        const logs: ProcessingLog[] = [];
 
         for (const rule of sortedRules) {
                 if (!rule.active) continue;
@@ -77,16 +110,6 @@ export const runPipeline = (sourceText: string, rules: RegexRule[]): PipelineRes
                         error: hasError ? errorMessage : undefined
                 });
         }
-
-        // Inject Scrollbar Styles
-        const scrollbarStyles = `
-    <style>
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.3); border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.5); }
-    </style>
-  `;
 
         return {
                 finalHtml: scrollbarStyles + currentText,
