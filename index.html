@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>正则调试器</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+                rel="stylesheet">
+        <script>
+                tailwind.config = {
+                        darkMode: 'class',
+                        theme: {
+                                extend: {
+                                        fontFamily: {
+                                                sans: ['Inter', 'sans-serif'],
+                                                mono: ['JetBrains Mono', 'monospace'],
+                                        },
+                                        colors: {
+                                                glass: {
+                                                        border: 'var(--glass-border-color)',
+                                                        surface: 'var(--glass-surface-color)',
+                                                        highlight: 'var(--glass-highlight-color)',
+                                                }
+                                        }
+                                }
+                        }
+                }
+        </script>
+        <style>
+                :root {
+                        --bg-primary: #f0f2f5;
+                        --text-primary: #1a1a1a;
+
+                        /* Stronger definition for Light Mode */
+                        --glass-bg: rgba(255, 255, 255, 0.9);
+                        --glass-border-color: rgba(0, 0, 0, 0.15);
+                        --glass-surface-color: #ffffff;
+                        --glass-highlight-color: rgba(0, 0, 0, 0.05);
+                        --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+                        --accent-glow: rgba(0, 0, 0, 0.05);
+                }
+
+                .dark {
+                        --bg-primary: #0a0a0a;
+                        --text-primary: #ededed;
+
+                        --glass-bg: rgba(20, 20, 20, 0.7);
+                        --glass-border-color: rgba(255, 255, 255, 0.1);
+                        --glass-surface-color: rgba(255, 255, 255, 0.05);
+                        --glass-highlight-color: rgba(255, 255, 255, 0.1);
+                        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
+                        --accent-glow: rgba(255, 255, 255, 0.05);
+                }
+
+                body {
+                        background-color: var(--bg-primary);
+                        color: var(--text-primary);
+                        transition: background-color 0.3s ease, color 0.3s ease;
+                        overflow: hidden;
+                        /* App handles scrolling */
+                }
+
+                /* Liquid Glass Class */
+                .glass-panel {
+                        background: var(--glass-bg);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1px solid var(--glass-border-color);
+                        box-shadow: var(--glass-shadow);
+                }
+
+                .glass-button {
+                        background: var(--glass-surface-color);
+                        backdrop-filter: blur(4px);
+                        border: 1px solid var(--glass-border-color);
+                        transition: all 0.2s ease;
+                }
+
+                .glass-button:hover {
+                        background: var(--glass-highlight-color);
+                        border-color: var(--text-primary);
+                        box-shadow: 0 0 15px var(--accent-glow);
+                }
+
+                /* Custom scrollbar */
+                ::-webkit-scrollbar {
+                        width: 6px;
+                        height: 6px;
+                }
+
+                ::-webkit-scrollbar-track {
+                        background: transparent;
+                }
+
+                ::-webkit-scrollbar-thumb {
+                        background: rgba(128, 128, 128, 0.3);
+                        border-radius: 3px;
+                }
+
+                ::-webkit-scrollbar-thumb:hover {
+                        background: rgba(128, 128, 128, 0.5);
+                }
+        </style>
+
+        <link rel="stylesheet" href="/index.css">
+        <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+    "@monaco-editor/react": "https://aistudiocdn.com/@monaco-editor/react@^4.7.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-Dc8N6hIi.js"></script>
+</head>
+
+<body class="dark"> <!-- Default to dark mode class, handled by React later -->
+        <div id="root"></div>
+</body>
+
+</html>
