@@ -1,0 +1,5 @@
+{
+  "name": "正则调试器 (Regex Debugger)",
+  "description": "一个专业的环境，用于开发、调试和串联 SillyTavern HTML 模板的正则表达式脚本。支持 AI 辅助生成与修改。",
+  "requestFramePermissions": []
+}
