@@ -1,18 +1,19 @@
 {
   "name": "正则调试器",
   "short_name": "RegexDebugger",
-  "start_url": "/ST_debugger/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0a0a0a",
   "icons": [
     {
-      "src": "/ST_debugger/icons/icon-192x192.png",
+      "src": "icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/ST_debugger/icons/icon-512x512.png",
+      "src": "icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
