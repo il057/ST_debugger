@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
         const env = loadEnv(mode, '.', '');
         const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
         return {
-                base: '/ST_debugger/',
+                base: './',
                 server: {
                         port: 5000,
                         host: '0.0.0.0',
